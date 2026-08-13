@@ -34,6 +34,14 @@
 - **frpc 主动出站**：家里路由器零端口映射，家宽无公网 IPv4 也能用
 - **IP 隐藏**：玩家只见中转 IP，家宽真实 IP 不暴露（附带 DDoS 转移效果）
 - **多服复用**：一台中转机可转发多个端口（25565/25566/…），100 人双服分流成本不变
+- **真实 IP 透传（PROXY protocol）**：frpc 每个代理 `[proxies.transport].proxyProtocolVersion = "v2"`（frp ≥0.60 位置）+ Paper `paper-global.yml` `proxies.proxy-protocol: true`。服务器看到玩家真实 IP（2026-08-13 本地实测验证），同源问题彻底解决；代价是**直连（无 PROXY 头）被服务器拒绝**，Geyser 需开 `use-haproxy-protocol: true` 同步适配
+
+### 两种档位（按场景选）
+
+| 档位 | 配置 | 适用 |
+|:--|:--|:--|
+| 临时（一天活动） | 不开 proxy-protocol，Paper `connection-throttle: 0` | 快速、零风险，接受同源 IP |
+| 正式（长期） | 开 proxy-protocol（frpc transport + Paper paper-global.yml）+ Geyser haproxy | 真实 IP、防误伤，需全链路适配 |
 
 ## 3. 延迟链路
 

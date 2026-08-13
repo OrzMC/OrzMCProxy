@@ -10,13 +10,18 @@ serverPort = 7000
 auth.method = "token"
 auth.token = "CHANGE_ME_STRONG_TOKEN"
 
-# Java 主服
+# Java 主服 —— ⚠️ 真实 IP 透传：proxyProtocolVersion 必须配在 [proxies.transport]（frp ≥0.60 位置）
+# 配套要求：Paper 端 paper-global.yml 开 proxies.proxy-protocol: true（不是 spigot.yml 的 bungeecord！）
+# 开启后：服务器看到玩家真实 IP；直连（无 PROXY 头）会被服务器拒绝 → Geyser 需开 use-haproxy-protocol: true
 [[proxies]]
 name = "mc-java-main"
 type = "tcp"
 localIP = "127.0.0.1"
 localPort = 25565
 remotePort = 25565
+
+[proxies.transport]
+proxyProtocolVersion = "v2"
 
 # Java 第二服（100 人双服分流）
 [[proxies]]
@@ -26,6 +31,9 @@ localIP = "127.0.0.1"
 localPort = 25566
 remotePort = 25566
 
+[proxies.transport]
+proxyProtocolVersion = "v2"
+
 # 基岩版（Geyser，UDP 经 frp 有 NAT 超时坑，一期先注释；开时注意 remotePort 需在 frps allowPorts 内）
 # [[proxies]]
 # name = "mc-bedrock"
@@ -33,6 +41,9 @@ remotePort = 25566
 # localIP = "127.0.0.1"
 # localPort = 19132
 # remotePort = 19132
+#
+# [proxies.transport]
+# proxyProtocolVersion = "v2"
 
 # 可选：心跳调优（家里网络抖动时）
 # transport.heartbeatInterval = 10

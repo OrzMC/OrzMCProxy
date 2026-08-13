@@ -4,19 +4,24 @@
 
 ## 1. 玩家报「连接超时 / Connection throttled」
 
-**Connection throttled（最常见）**
+**Connection throttled**
 
-- 原因：Paper `connection-throttle` 限制同 IP 连接频率；中转后所有玩家同源 IP
-- 修复：放宽/关闭（`server.properties` 或 Paper 配置），见 setup-guide 关键坑 1
+- 原因：Paper `connection-throttle` 限制同 IP 连接频率（未开 proxy-protocol 时，中转后所有玩家同源 IP）
+- 修复：临时方案设 0；正式方案开 proxy-protocol 后真实 IP 透传，无需放宽
 - 确认：服务端日志 grep `Connection throttled`
 
 **连接超时 / 被拒绝**
 
-1. 中转机安全组是否放行 `TCP 25565/25566`？
-2. frps 是否监听：`ss -lntp | grep 25565`（中转机上）
-3. frpc 隧道是否在线：`bash scripts/health-check.sh`（家里）
-4. frps 日志有无报错：`journalctl -u frps -n 50`（中转机）
-5. 家里是否断网/断电
+1. **开了 proxy-protocol 后直连被拒/超时 = 正常现象**（无 PROXY 头的连接服务器不处理）——确认玩家走的是中转地址
+2. 中转机安全组是否放行 `TCP 25565/25566`？
+3. frps 是否监听：`ss -lntp | grep 25565`（中转机上）
+4. frpc 隧道是否在线：`bash scripts/health-check.sh`（家里）
+5. **PROXY 头相关排查**：
+   - frpc 配置：`proxyProtocolVersion` 必须在 `[proxies.transport]` 子表（frp ≥0.60，顶层会报 unknown field）
+   - Paper 配置：`config/paper-global.yml` 的 `proxies.proxy-protocol: true`（不是 spigot.yml bungeecord）
+   - 基岩玩家连不上：Geyser config.yml 开 `use-haproxy-protocol: true`
+6. frps 日志有无报错：`journalctl -u frps -n 50`（中转机）
+7. 家里是否断网/断电
 
 ## 2. 玩家延迟还是高
 

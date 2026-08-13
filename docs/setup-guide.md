@@ -66,6 +66,10 @@ bash scripts/verify-tunnel.sh <中转机IP> 25566
 
 预期输出：TCP 握手成功 + 返回服务器 MOTD/版本（Minecraft Server List Ping 协议）。
 
+**真实 IP 透传验证**（开 proxy-protocol 后）：
+- 进服后 `list` / 服务器日志看玩家 IP 是否为真实公网 IP（而非中转机 IP）
+- 直接连接服务器（不带代理）应被拒——这是**正常现象**（proxy-protocol 模式特性），不是故障
+
 ## 4. 灰度测试
 
 1. 拉 2–3 个联通/移动玩家连中转 IP，对比直连延迟（ping/mtr 中转 IP）
@@ -87,18 +91,23 @@ sudo systemctl stop frpc          # macOS: launchctl unload ...
 
 ## ⚠️ 关键坑
 
-1. **Paper `connection-throttle` 必须放宽**：中转后所有玩家同源 IP（中转机 IP），默认 4000ms 会误伤高峰进服 → `server.properties` 或 Paper 配置中**调大或设 0**（0 = 关闭），否则报 `Connection throttled! Please wait 4000 ms`
-2. **中转机安全组别开 RCON/MCSM 面板端口**（25575/23333 绝不暴露公网）
-3. **frps/frpc 版本必须一致**（都用 v0.70.1），避免 wire protocol 不兼容
-4. **家里断电/断网 = 全服不可达**：活动日确认供电（UPS）与网络
-5. **带宽顶满先查家里上行**：100 人峰值 20–30Mbps vs 家宽上行 50Mbps——活动前用压测验证（stress-stay.js 100 bot + 观察上行利用率）
-6. **基岩 UDP（19132）经 frp 有 NAT 超时坑**：Geyser 玩家一期先保持直连，二期再评估
+1. **真实 IP 透传（正式方案必做）**：
+   - frpc 每个代理的 `[proxies.transport]` 配 `proxyProtocolVersion = "v2"`（⚠️ **frp ≥0.60 位置在 transport 子表，不在 proxies 顶层**——顶层会报 `unknown field`）
+   - Paper 端 `config/paper-global.yml` 开 `proxies.proxy-protocol: true`（⚠️ **不是 spigot.yml 的 bungeecord**——bungeecord 模式解析的是 BungeeCord 转发数据，不认 PROXY 头）
+   - 开启后服务器日志显示玩家真实 IP（2026-08-13 本地实测：PROXY 头伪造 IP 被服务器如实显示）
+   - ⚠️ 开 proxy-protocol 后**直连（无 PROXY 头）会被服务器静默拒绝/超时**（官方行为）→ 基岩 Geyser 必须同步开 `use-haproxy-protocol: true`（Geyser config.yml java 段），否则基岩入口挂
+2. **Paper `connection-throttle`**：开 proxy-protocol 后服务器看到真实 IP，无需放宽；**不开 proxy-protocol 的临时方案**（一天活动）才需要设 0（同源 IP 误伤）
+3. **中转机安全组别开 RCON/MCSM 面板端口**（25575/23333 绝不暴露公网）
+4. **frps/frpc 版本必须一致**（都用 v0.70.1），避免 wire protocol 不兼容
+5. **家里断电/断网 = 全服不可达**：活动日确认供电（UPS）与网络
+6. **带宽顶满先查家里上行**：100 人峰值 20–30Mbps vs 家宽上行 50Mbps——活动前用压测验证（stress-stay.js 100 bot + 观察上行利用率）
+7. **基岩 UDP（19132）经 frp 有 NAT 超时坑**：Geyser 玩家一期先保持直连（此时 Paper 不能开 proxy-protocol，否则直连被拒；或开 proxy-protocol + Geyser 开 haproxy 双向支持），二期再评估
 
 ## 活动日检查清单
 
 - [ ] 中转机实例已创建、安全组正确
 - [ ] frps/frpc 服务 running（`systemctl status`）
 - [ ] `verify-tunnel.sh` 两个端口均通过
-- [ ] Paper `connection-throttle` 已放宽
+- [ ] 档位确认：正式档 → Paper proxy-protocol + Geyser haproxy 已开；临时档 → `connection-throttle` 已放宽
 - [ ] 压测：家里上行未顶满
 - [ ] 群公告连接地址已更新
