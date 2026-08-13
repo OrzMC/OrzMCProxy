@@ -70,6 +70,12 @@ bash scripts/verify-tunnel.sh <中转机IP> 25566
 - 进服后 `list` / 服务器日志看玩家 IP 是否为真实公网 IP（而非中转机 IP）
 - 直接连接服务器（不带代理）应被拒——这是**正常现象**（proxy-protocol 模式特性），不是故障
 
+**基岩入口验证**（无需真实基岩客户端）：
+```bash
+python3 scripts/bedrock_ping.py <家里IP> 19132
+# PONG_OK + MOTD = Geyser 存活且 Geyser→Java 连接（haproxy 头）被 Paper 接受
+```
+
 ## 4. 灰度测试
 
 1. 拉 2–3 个联通/移动玩家连中转 IP，对比直连延迟（ping/mtr 中转 IP）
