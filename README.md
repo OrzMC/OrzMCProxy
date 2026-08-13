@@ -56,6 +56,7 @@ Windows：管理员 PowerShell 执行 `scripts/install-frp.ps1 -Role frpc`
 ├── docs/
 │   ├── architecture.md      # 架构/端口/延迟链路/成本
 │   ├── setup-guide.md       # 完整部署手册（含灰度迁移/回滚）
+│   ├── manual-apply-windows.md  # MCSM 面板不可用时 Windows 手动改法（2 文件+重启）
 │   └── troubleshooting.md   # 排障手册
 ├── configs/                 # 配置模板（复制为 frps.toml / frpc.toml 修改）
 ├── scripts/                 # 安装/验证/健康检查/卸载（sh + ps1）
