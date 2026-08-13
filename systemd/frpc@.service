@@ -1,0 +1,18 @@
+# OrzMCProxy frpc - systemd 模板单元（多实例）
+# 实例: frpc@default.service / frpc@relay-b.service（%i = 实例名）
+# 启用: systemctl enable --now frpc@<name>
+# 安装脚本 install-frp.sh 自动生成本文件
+[Unit]
+Description=OrzMCProxy frpc %i (home tunnel client)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/frpc -c /etc/orzmcproxy/frpc-%i.toml
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+# OrzMCProxy frps - systemd 模板单元（多实例，一般单实例 default 即可）
+# 实例: frps@default.service（%i = 实例名）
+# 启用: systemctl enable --now frps@<name>
+# 安装脚本 install-frp.sh 自动生成本文件
+[Unit]
+Description=OrzMCProxy frps %i (relay server)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/frps -c /etc/orzmcproxy/frps-%i.toml
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

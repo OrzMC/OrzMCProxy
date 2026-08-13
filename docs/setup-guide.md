@@ -18,42 +18,46 @@ openssl rand -hex 32   # 或 python3 -c "import secrets;print(secrets.token_hex(
 ## 1. 中转机部署 frps（Linux）
 
 ```bash
-# 一键安装（自动检测 OS/arch，下载 frp v0.70.1，注册 systemd 服务）
+# 一键安装（自动检测 OS/arch，下载 frp v0.70.1，生成 frps-default.toml + 注册 systemd frps@default）
 sudo bash scripts/install-frp.sh frps
 
-# 配置：复制模板并填写
-sudo mkdir -p /etc/orzmcproxy
-sudo cp configs/frps.toml.example /etc/orzmcproxy/frps.toml
-sudo vi /etc/orzmcproxy/frps.toml    # 改 auth.token = "<强随机token>"
+# 配置：编辑模板（安装脚本已自动生成）
+sudo vi /etc/orzmcproxy/frps-default.toml    # 改 auth.token = "<强随机token>"
 
-sudo systemctl enable --now frps
-sudo systemctl status frps
+sudo systemctl restart frps@default
+sudo systemctl status frps@default
 ```
 
-验证：`sudo ss -lntp | grep -E '7000|25565|25566'` 应看到监听。
+验证：`sudo ss -lntp | grep -E '7000|25565'` 应看到监听。
 
 ## 2. 家里部署 frpc（Linux / macOS / Windows）
 
 ### Linux / macOS
 
 ```bash
-sudo bash scripts/install-frp.sh frpc
+sudo bash scripts/install-frp.sh frpc          # 生成 frpc-default.toml + 注册 frpc@default / LaunchDaemon
 
-sudo mkdir -p /etc/orzmcproxy          # macOS: /usr/local/etc/orzmcproxy
-sudo cp configs/frpc.toml.example /etc/orzmcproxy/frpc.toml
-sudo vi /etc/orzmcproxy/frpc.toml      # 改 serverAddr + auth.token
+sudo vi /etc/orzmcproxy/frpc-default.toml      # macOS: /usr/local/etc/orzmcproxy/frpc-default.toml
+# 改 serverAddr = "<中转机IP>" + auth.token
+sudo systemctl restart frpc@default            # macOS: launchctl unload/load
 ```
 
-- Linux：`sudo systemctl enable --now frpc`
-- macOS：`launchctl load /Library/LaunchDaemons/com.orzmc.frpc.plist`（安装脚本自动处理）
+**多实例（多中转机 → 单服务）**：每台中转机一个实例
+
+```bash
+sudo bash scripts/install-frp.sh frpc relay-b  # 第二台中转机 → frpc-relay-b.toml + frpc@relay-b.service
+sudo vi /etc/orzmcproxy/frpc-relay-b.toml      # serverAddr 指向第二台中转机
+sudo systemctl restart frpc@relay-b
+```
 
 ### Windows 11（管理员 PowerShell）
 
 ```powershell
 # 自动下载、解压到 C:\Program Files\OrzMCProxy、注册开机自启计划任务（含 5 分钟自愈）
 .\scripts\install-frp.ps1 -Role frpc
-# 编辑 C:\Program Files\OrzMCProxy\frpc.toml 后：
-Restart-ScheduledTask -TaskName "OrzMCProxy-frpc"
+# 多实例：.\scripts\install-frp.ps1 -Role frpc -Name relay-b
+# 编辑 C:\Program Files\OrzMCProxy\frpc-default.toml 后：
+Restart-ScheduledTask -TaskName "OrzMCProxy-frpc-default"
 ```
 
 ## 3. 隧道验证（在中转机上或任意机器）

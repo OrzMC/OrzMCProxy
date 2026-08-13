@@ -39,14 +39,15 @@ frp 版本固定 **v0.70.1**（TOML 配置）。安装脚本自动检测 OS/架�
 ## 快速开始
 
 ```bash
-# 1. 中转机（Linux）：装 frps
+# 1. 中转机（Linux）：装 frps（生成 frps-default.toml + systemd frps@default）
 sudo bash scripts/install-frp.sh frps
 
-# 2. 家里（Linux/macOS）：装 frpc
+# 2. 家里（Linux/macOS）：装 frpc（多中转机时加实例名参数）
 sudo bash scripts/install-frp.sh frpc
+sudo bash scripts/install-frp.sh frpc relay-b    # 第二台中转机
 ```
 
-Windows：管理员 PowerShell 执行 `scripts/install-frp.ps1 -Role frpc`
+Windows：管理员 PowerShell 执行 `scripts/install-frp.ps1 -Role frpc`（多实例加 `-Name relay-b`）
 
 详细步骤见 `docs/setup-guide.md`。
 

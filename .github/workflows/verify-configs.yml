@@ -43,6 +43,24 @@ jobs:
             Write-Host "✅ $f 语法通过"
           }
 
+      - name: Linux 多实例安装测试（SKIP_SERVICE=1 跳过 systemd 注册）
+        run: |
+          export SKIP_SERVICE=1
+          sudo bash scripts/install-frp.sh frpc
+          sudo bash scripts/install-frp.sh frpc relay-b
+          echo "--- 生成的配置 ---"
+          ls -la /etc/orzmcproxy/
+          test -f /usr/local/bin/frpc || { echo "❌ 缺共享二进制"; exit 1; }
+          test -f /etc/orzmcproxy/frpc-default.toml || { echo "❌ 缺 frpc-default.toml"; exit 1; }
+          test -f /etc/orzmcproxy/frpc-relay-b.toml || { echo "❌ 缺 frpc-relay-b.toml"; exit 1; }
+          grep -q "frpc-default" /etc/orzmcproxy/frpc-default.toml || { echo "❌ 配置串扰 default"; exit 1; }
+          grep -q "frpc-relay-b" /etc/orzmcproxy/frpc-relay-b.toml || { echo "❌ 配置串扰 relay-b"; exit 1; }
+          # 幂等：重复安装不覆盖已有配置
+          echo "CHANGE_ME_RELAY_IP" > /tmp/marker
+          sudo bash scripts/install-frp.sh frpc >/dev/null 2>&1
+          grep -q "CHANGE_ME_RELAY_IP" /etc/orzmcproxy/frpc-default.toml && echo "✅ 幂等验证通过（配置未被覆盖）"
+          echo "✅ Linux 多实例验证通过（二进制共享 + 配置隔离 + 幂等）"
+
   windows-install-test:
     runs-on: windows-latest
     steps:

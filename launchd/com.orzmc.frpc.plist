@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- OrzMCProxy frpc - macOS LaunchDaemon
-     安装（sudo）：cp com.orzmc.frpc.plist /Library/LaunchDaemons/ && launchctl load /Library/LaunchDaemons/com.orzmc.frpc.plist
-     卸载：launchctl unload /Library/LaunchDaemons/com.orzmc.frpc.plist -->
+<!-- OrzMCProxy frpc - macOS LaunchDaemon 参考模板（default 实例）
+     ⚠️ 多实例：install-frp.sh 会按实例自动生成
+        /Library/LaunchDaemons/com.orzmc.frpc-<name>.plist（无需手改本文件）
+     手动安装：sudo cp com.orzmc.frpc.plist /Library/LaunchDaemons/ && sudo launchctl load /Library/LaunchDaemons/com.orzmc.frpc.plist
+     手动卸载：sudo launchctl unload /Library/LaunchDaemons/com.orzmc.frpc.plist -->
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.orzmc.frpc</string>
+    <string>com.orzmc.frpc-default</string>
 
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/frpc</string>
         <string>-c</string>
-        <string>/usr/local/etc/orzmcproxy/frpc.toml</string>
+        <string>/usr/local/etc/orzmcproxy/frpc-default.toml</string>
     </array>
 
     <!-- 开机自启 + 崩溃自动拉起 -->
@@ -21,10 +23,10 @@
     <key>KeepAlive</key>
     <true/>
 
-    <!-- 日志 -->
+    <!-- 日志（按实例） -->
     <key>StandardOutPath</key>
-    <string>/usr/local/var/log/orzmcproxy/frpc.log</string>
+    <string>/usr/local/var/log/orzmcproxy/frpc-default.log</string>
     <key>StandardErrorPath</key>
-    <string>/usr/local/var/log/orzmcproxy/frpc.log</string>
+    <string>/usr/local/var/log/orzmcproxy/frpc-default.log</string>
 </dict>
 </plist>

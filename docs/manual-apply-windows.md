@@ -8,7 +8,7 @@
 **必须先保证 frpc 隧道已通，再改服务器配置重启**——因为开启 proxy-protocol 后，**直连（无代理头）会被服务器拒绝**，顺序错了玩家会全连不上：
 
 1. ① 中转机 frps 已部署（上海按量 CVM）
-2. ② Windows 宿主机 frpc 已安装且隧道 `start proxy success` —— 安装步骤见 `windows/README.md`（管理员 PowerShell 跑 `scripts/install-frp.ps1 -Role frpc`，改 `C:\Program Files\OrzMCProxy\frpc.toml` 的 serverAddr/token 后 `Restart-ScheduledTask -TaskName "OrzMCProxy-frpc"`）
+2. ② Windows 宿主机 frpc 已安装且隧道 `start proxy success` —— 安装步骤见 `windows/README.md`（管理员 PowerShell 跑 `scripts/install-frp.ps1 -Role frpc`，改 `C:\Program Files\OrzMCProxy\frpc-default.toml` 的 serverAddr/token 后 `Restart-ScheduledTask -TaskName "OrzMCProxy-frpc-default"`）
 3. ③ **才执行本文件的 2 处配置修改 + 重启**
 
 ## 第 1 步：找到 MCSM 实例目录
