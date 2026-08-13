@@ -27,3 +27,51 @@ jobs:
         run: |
           for f in scripts/*.sh; do bash -n "$f"; done
           echo "✅ 所有 .sh 语法通过"
+
+      - name: 校验 PowerShell 脚本语法（Parser 只解析不执行）
+        shell: pwsh
+        run: |
+          $files = @("scripts/install-frp.ps1", "scripts/uninstall-frp.ps1")
+          foreach ($f in $files) {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($f, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              Write-Host "❌ $f 语法错误:"
+              $errors | ForEach-Object { Write-Host $_.Message }
+              exit 1
+            }
+            Write-Host "✅ $f 语法通过"
+          }
+
+  windows-install-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 default 实例
+        shell: pwsh
+        run: .\scripts\install-frp.ps1 -Role frpc
+
+      - name: 安装第二实例（多中转机场景）
+        shell: pwsh
+        run: .\scripts\install-frp.ps1 -Role frpc -Name relay-b
+
+      - name: 验证两个计划任务已注册
+        shell: pwsh
+        run: |
+          $tasks = Get-ScheduledTask -TaskName "OrzMCProxy-frpc-default", "OrzMCProxy-frpc-relay-b"
+          $tasks | Select-Object TaskName, State | Format-Table
+          if ($tasks.Count -ne 2) { exit 1 }
+
+      - name: 验证配置按实例隔离 + 二进制共享
+        shell: pwsh
+        run: |
+          $dir = "C:\Program Files\OrzMCProxy"
+          if (-not (Test-Path "$dir\frpc-default.toml")) { Write-Error "缺 frpc-default.toml"; exit 1 }
+          if (-not (Test-Path "$dir\frpc-relay-b.toml")) { Write-Error "缺 frpc-relay-b.toml"; exit 1 }
+          if (-not (Test-Path "$dir\frpc.exe")) { Write-Error "缺共享二进制 frpc.exe"; exit 1 }
+          # 两个配置的日志路径必须隔离
+          $c1 = Get-Content "$dir\frpc-default.toml" -Raw
+          $c2 = Get-Content "$dir\frpc-relay-b.toml" -Raw
+          if ($c1 -match "frpc-relay-b") { Write-Error "配置串扰"; exit 1 }
+          Write-Host "✅ 多实例安装验证通过（二进制共享 + 配置/日志隔离 + 双任务注册）"
