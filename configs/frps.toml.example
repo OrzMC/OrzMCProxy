@@ -1,0 +1,19 @@
+# OrzMCProxy - frps（中转机）配置模板
+# 用法：cp 到 /etc/orzmcproxy/frps.toml 后修改，systemd: ExecStart=/usr/local/bin/frps -c /etc/orzmcproxy/frps.toml
+# 校验：frps verify -c frps.toml
+
+# 控制通道端口（frpc 主动连入）
+bindPort = 7000
+
+# token 认证（两端必须一致）
+auth.method = "token"
+auth.token = "CHANGE_ME_STRONG_TOKEN"
+
+# 只允许转发这些远程端口（安全收紧，防止中转机被当跳板）
+allowPorts = [
+  { start = 25565, end = 25566 },
+]
+
+# 可选：单隧道带宽限制（防止单服吃满中转带宽，格式如 "20mb"/"50mb"）
+# [transport]
+# bandwidthLimit = "20mb"

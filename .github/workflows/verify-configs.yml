@@ -1,0 +1,29 @@
+name: verify-configs
+# 每次 push/PR 校验 frps/frpc 配置模板语法（frp 官方 verify 命令）
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 下载 frp v0.70.1 (linux amd64)
+        run: |
+          curl -fL -o frp.tar.gz https://github.com/fatedier/frp/releases/download/v0.70.1/frp_0.70.1_linux_amd64.tar.gz
+          tar -xzf frp.tar.gz
+          mv frp_*/frps frp_*/frpc .
+
+      - name: 校验 frps.toml.example
+        run: ./frps verify -c configs/frps.toml.example
+
+      - name: 校验 frpc.toml.example
+        run: ./frpc verify -c configs/frpc.toml.example
+
+      - name: 校验 shell 脚本语法（Linux 目标端）
+        run: |
+          for f in scripts/*.sh; do bash -n "$f"; done
+          echo "✅ 所有 .sh 语法通过"

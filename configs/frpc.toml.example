@@ -1,0 +1,39 @@
+# OrzMCProxy - frpc（家里）配置模板
+# 用法：cp 到 /etc/orzmcproxy/frpc.toml（macOS: /usr/local/etc/orzmcproxy/frpc.toml）后修改
+# 校验：frpc verify -c frpc.toml
+
+# 中转机公网 IP / 域名
+serverAddr = "CHANGE_ME_RELAY_IP"
+serverPort = 7000
+
+# token 认证（与 frps 一致）
+auth.method = "token"
+auth.token = "CHANGE_ME_STRONG_TOKEN"
+
+# Java 主服
+[[proxies]]
+name = "mc-java-main"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 25565
+remotePort = 25565
+
+# Java 第二服（100 人双服分流）
+[[proxies]]
+name = "mc-java-second"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 25566
+remotePort = 25566
+
+# 基岩版（Geyser，UDP 经 frp 有 NAT 超时坑，一期先注释；开时注意 remotePort 需在 frps allowPorts 内）
+# [[proxies]]
+# name = "mc-bedrock"
+# type = "udp"
+# localIP = "127.0.0.1"
+# localPort = 19132
+# remotePort = 19132
+
+# 可选：心跳调优（家里网络抖动时）
+# transport.heartbeatInterval = 10
+# transport.heartbeatTimeout = 30
