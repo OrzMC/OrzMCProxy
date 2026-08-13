@@ -1,0 +1,30 @@
+# 生产 frpc 配置模板（Windows 宿主机 / Linux 服务器通用）
+# 用途：OrzMC 活动正式档 — Java 25565 (TCP, PROXY v2 真实 IP 透传) + 基岩 19132 (UDP 中转)
+# 用法：复制为 frpc-default.toml，替换 CHANGE_ME 后启动
+# 配套：frps allowPorts 须含 [25565, 19132]；云防火墙放行 TCP 7000/25565 + UDP 19132
+
+serverAddr = "1.117.58.192"        # 中转机 IP（上海腾讯云）
+serverPort = 7000                   # frps 控制端口
+auth.method = "token"
+auth.token = "CHANGE_ME_STRONG_TOKEN"   # 与 frps 配置一致
+log.to = "frpc-default.log"
+log.level = "info"
+
+# Java 版：TCP 25565 + PROXY v2 真实 IP 透传
+[[proxies]]
+name = "mc-java"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 25565
+remotePort = 25565
+
+[proxies.transport]
+proxyProtocolVersion = "v2"        # ⚠️ 必须在 [proxies.transport] 子表，不在 proxies 顶层
+
+# 基岩版：UDP 19132 中转（frp UDP 代理，无 PROXY 头；Geyser bedrock 段 use-haproxy-protocol 必须 false）
+[[proxies]]
+name = "mc-bedrock"
+type = "udp"
+localIP = "127.0.0.1"
+localPort = 19132
+remotePort = 19132
