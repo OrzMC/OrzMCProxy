@@ -38,10 +38,20 @@
 
 ### 两种档位（按场景选）
 
-| 档位 | 配置 | 适用 |
+| 维度 | 临时档（一天活动） | 正式档（长期） |
 |:--|:--|:--|
-| 临时（一天活动） | 不开 proxy-protocol，Paper `connection-throttle: 0` | 快速、零风险，接受同源 IP |
-| 正式（长期） | 开 proxy-protocol（frpc transport + Paper paper-global.yml）+ Geyser haproxy | 真实 IP、防误伤，需全链路适配 |
+| **配置** | 不开 proxy-protocol；frpc 无头透传；Paper `connection-throttle: 0` | 开 proxy-protocol 三处联动：frpc `[proxies.transport] proxyProtocolVersion = "v2"` + Paper `paper-global.yml proxies.proxy-protocol: true` + Geyser java 段 `use-haproxy-protocol: true`（bedrock 段不动） |
+| **玩家入口** | 中转 IP + 家宽直连 IP **双通道**并行 | **只有中转 IP**（直连被服务器静默拒绝） |
+| **真实 IP 透传** | ❌ 无（服务器看到全部玩家 = 中转机 IP） | ✅ 有（frpc 自动加 PROXY v2 头，服务器显示玩家真实公网 IP） |
+| **同源 IP 问题** | ⚠️ 有：connection-throttle 误伤 → 必须设 0（有被刷风险） | ✅ 无：真实 IP 各自计数，throttle 可保持默认 |
+| **基岩玩家** | 双通道（直连家里 19132 / 中转 19132 均可） | 双通道（Geyser haproxy 只影响 Geyser→Java 本地 TCP，与玩家怎么连无关） |
+| **部署复杂度** | ⭐ 低：只改 frpc + 1 个 throttle | ⭐⭐⭐ 高：三处联动 + 必须重启服务器 + Geyser 配置易改错（java/bedrock 同名项） |
+| **切换成本** | 5 分钟（改 frpc） | 30-60 分钟（3 文件 + 重启 + 验证矩阵）；回滚同样要重启 |
+| **风险** | 低（不碰服务器配置）；但无真实 IP | 中（顺序错 = 全服不可达；直连地址永久失效） |
+| **监控方式** | `relay-monitor.sh --mode temp --direct-host 家宽IP`：中转+直连双通道完整 MC ping + RakNet | `relay-monitor.sh --mode formal`：Java 只做 TCP+后端存活检测（MC ping 被服务器拒属预期），RakNet 两档通用 |
+| **适用** | 一次性活动（一天），快速零风险，接受同源 IP | 长期运营（日常服），要真实 IP 防误伤 |
+
+**选型建议**：默认正式档（防误伤 + 监控语义清晰）；只有「明天就开活动、来不及灰度」时才临时档救急——但注意临时档**没有真实 IP**，按 IP 的功能（GeoIP 拦截、黑名单、throttle 计数）全部失效或需放宽。
 
 ## 3. 延迟链路
 
@@ -59,12 +69,12 @@
 | 端口 | 用途 | 中转 |
 |:--|:--|:--|
 | 25565 | Java 主服 | ✅ TCP |
-| 25566 | Java 第二服（分流） | ✅ TCP |
-| 19132 | 基岩 Geyser | ⚠️ 二期可选（UDP 经 frp 有 NAT 超时坑） |
+| 25566 | Java 第二服（分流） | ✅ TCP（预留，当前未启用） |
+| 19132 | 基岩 Geyser | ✅ UDP（2026-08-14 真机实测可行：10/10 RakNet ping + 真机进服） |
 | 25575 | RCON | ❌ 绝不暴露公网 |
 | 23333 | MCSM 面板 | ❌ 绝不暴露公网 |
 
-中转机安全组只放行：`TCP 7000`（仅限家里 IP）+ `TCP 25565/25566`（全部）。
+中转机安全组只放行：`TCP 7000`（仅限家里 IP）+ `TCP 25565/25566`（全部）+ `UDP 19132`（全部，基岩入口）。
 
 ## 5. 成本（按天活动场景）
 
@@ -78,6 +88,6 @@
 
 ## 6. 已知边界
 
-- 家里上行 50Mbps 是容量上限：100 人均值 ~10Mbps、峰值 20–30Mbps，**贴近上限**——活动前必须压测验证
+- 家里上行 50Mbps 是容量上限：100 人均值 ~10Mbps、峰值 20–30Mbps，**贴近上限**——活动前必须压测验证（stress-stay.js 100 bot + 观察上行利用率）
 - 家里断电/断网 → 全服不可达（单点依赖，活动日需确认供电/网络）
-- 中转后所有玩家同源 IP（中转机 IP）→ Paper `connection-throttle` 必须放宽（见 setup-guide 关键坑）
+- **临时档**下中转后所有玩家同源 IP（中转机 IP）→ Paper `connection-throttle` 必须放宽（设 0）；**正式档**有真实 IP 透传，throttle 保持默认即可（见「两种档位」表）

@@ -13,7 +13,7 @@
 **连接超时 / 被拒绝**
 
 1. **开了 proxy-protocol 后直连被拒/超时 = 正常现象**（无 PROXY 头的连接服务器不处理）——确认玩家走的是中转地址
-2. 中转机安全组是否放行 `TCP 25565/25566`？
+2. 中转机安全组是否放行 `TCP 25565/25566` + `UDP 19132`？
 3. frps 是否监听：`ss -lntp | grep 25565`（中转机上）
 4. frpc 隧道是否在线：`bash scripts/health-check.sh`（家里）
 5. **PROXY 头相关排查**：
@@ -56,15 +56,22 @@ transport.heartbeatTimeout = 30
 
 ## 5. 基岩版（Geyser）玩家异常
 
-- UDP 经 frp 转发有 NAT 超时，空闲连接可能断开
-- 一期方案：基岩玩家**直连家宽 IP**（绕过中转），或在群里告知 Geyser 直连地址
-- 二期评估：UDP 隧道调优或单独方案
+- UDP 19132 中转已实测可行（2026-08-14），基岩玩家直连或走中转均可
+- 基岩连不上排查顺序：
+  1. 云防火墙是否放行 **UDP 19132**（TCP 放行不算数，UDP 独立）
+  2. frps `allowPorts` 是否含 `{ start = 19132, end = 19132 }`；frpc 是否配了 `type = "udp"` proxy
+  3. `python3 scripts/bedrock_ping.py <中转机IP> 19132` → 无响应 = frpc 未连或 UDP 未放行；PONG_OK = Geyser 链路正常
+  4. 正式档下 Geyser java 段 `use-haproxy-protocol: true` 是否生效（启动日志 WARN「Geyser is configured to use proxy protocol」）；⚠️ bedrock 段必须 false（frp UDP 代理不支持 PROXY 头，开 true 基岩客户端会被拒）
+- 已知代价：UDP 中转无真实 IP 透传（Geyser 看到 127.0.0.1），基岩玩家 IP 级管控失效（XUID 管控不受影响）
 
 ## 6. 验证工具速查
 
 | 工具 | 用途 |
 |:--|:--|
-| `scripts/verify-tunnel.sh <IP> <port>` | TCP + Minecraft 协议握手探测 |
-| `scripts/health-check.sh` | frpc/frps 进程、隧道、日志状态 |
+| `scripts/verify-tunnel.sh <IP> <port>` | TCP + Minecraft 协议握手探测（⚠️ 正式档经中转 ping 成功属正常，直连无头 timeout 也正常） |
+| `scripts/relay-monitor.sh --mode formal\|temp` | 外部隧道监控看门狗（状态翻转告警，cron no_agent） |
+| `scripts/bedrock_ping.py <IP> [port]` | 基岩 RakNet 探测（PONG_OK = Geyser 端到端正常） |
+| `scripts/mc_login.py <host> <port> [src_ip] [src_port] [user] [proxy\|plain]` | 完整协议登录验证（Login Success / 白名单拒绝 / PROXY 头伪造） |
+| `scripts/health-check.sh` | frpc/frps 进程、隧道、日志状态（本机视角） |
 | `nc -vz <IP> <port>` | 纯 TCP 连通性 |
 | 服务端日志 grep | `Connection throttled` / `Timed out` / `Lost connection` |

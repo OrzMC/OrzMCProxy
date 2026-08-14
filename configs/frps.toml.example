@@ -12,6 +12,7 @@ auth.token = "CHANGE_ME_STRONG_TOKEN"
 # 只允许转发这些远程端口（安全收紧，防止中转机被当跳板）
 allowPorts = [
   { start = 25565, end = 25566 },
+  { start = 19132, end = 19132 },   # 基岩 Geyser UDP（frp UDP 代理）
 ]
 
 # 可选：单隧道带宽限制（防止单服吃满中转带宽，格式如 "20mb"/"50mb"）

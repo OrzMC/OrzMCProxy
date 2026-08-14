@@ -34,16 +34,16 @@ remotePort = 25566
 [proxies.transport]
 proxyProtocolVersion = "v2"
 
-# 基岩版（Geyser，UDP 经 frp 有 NAT 超时坑，一期先注释；开时注意 remotePort 需在 frps allowPorts 内）
-# [[proxies]]
-# name = "mc-bedrock"
-# type = "udp"
-# localIP = "127.0.0.1"
-# localPort = 19132
-# remotePort = 19132
-#
-# [proxies.transport]
-# proxyProtocolVersion = "v2"
+# 基岩版（Geyser，UDP 中转，2026-08-14 真机实测可行）
+# ⚠️ UDP 代理不支持 PROXY protocol：不要配 [proxies.transport] proxyProtocolVersion！
+#    Geyser bedrock 段 use-haproxy-protocol 必须保持 false（java 段正式档才开 true）
+#    代价：UDP 中转无真实 IP 透传（Geyser 看到 127.0.0.1），基岩玩家 IP 级管控失效（XUID 不受影响）
+[[proxies]]
+name = "mc-bedrock"
+type = "udp"
+localIP = "127.0.0.1"
+localPort = 19132
+remotePort = 19132
 
 # 可选：心跳调优（家里网络抖动时）
 # transport.heartbeatInterval = 10

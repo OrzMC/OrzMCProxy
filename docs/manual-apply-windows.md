@@ -80,7 +80,7 @@ Start-Process -FilePath "cmd" -ArgumentList "/c", "cd /d <实例目录> && start
 1. **隧道连通**（在任意机器，含 Mac）：`bash scripts/verify-tunnel.sh <中转机IP> 25565` → 返回服务器 MOTD
 2. **真实 IP**：玩家进服后服务端日志显示玩家公网 IP（不是中转机 IP）
 3. **直连被拒 = 正常**：直接连家里 IP:25565 会被静默拒（proxy-protocol 特性），**这不是故障**
-4. **基岩玩家**：直连家里 IP:19132（UDP）正常进服（Geyser haproxy 已开，转发带 PROXY 头）
+4. **基岩玩家**：双通道可用——直连家里 IP:19132（UDP）或连 `<中转机IP>:19132` 均可（Geyser haproxy 只管 Geyser→Java 本地 TCP，与玩家入口无关；`python3 scripts/bedrock_ping.py <中转机IP> 19132` 应 PONG_OK）
 
 ## 回滚（紧急）
 

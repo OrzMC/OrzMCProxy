@@ -19,7 +19,7 @@ OrzMC 跨网中转方案（FRP）——解决**电信家宽服务器**下**联�
 ```
 联通/移动玩家 ──┐
 电信玩家   ──┼──► 中转机 frps (三线BGP, 公网IP) ──frp加密隧道──► 家里 frpc (主动出站)
-                │   TCP 7000(控制) / 25565 / 25566                无需路由器端口映射
+                │   TCP 7000(控制) / 25565 / 25566 + UDP 19132     无需路由器端口映射
                 └────────────────────────────────────────────┘
 ```
 
@@ -51,6 +51,19 @@ Windows：管理员 PowerShell 执行 `scripts/install-frp.ps1 -Role frpc`（多
 
 详细步骤见 `docs/setup-guide.md`。
 
+## 两种档位（核心决策）
+
+| 维度 | 临时档（一天活动） | 正式档（长期） |
+|:--|:--|:--|
+| 玩家入口 | 中转 + 家宽直连 **双通道** | **只有中转**（直连被拒） |
+| 真实 IP 透传 | ❌ 无（全部同源 IP） | ✅ 有（frpc PROXY v2 头） |
+| connection-throttle | 必须设 0（防误伤） | 保持默认即可 |
+| 部署复杂度 | ⭐ 低（改 frpc + 1 配置） | ⭐⭐⭐ 高（三处联动 + 重启） |
+| 监控 | `relay-monitor.sh --mode temp --direct-host 家宽IP` | `relay-monitor.sh --mode formal` |
+| 适用 | 一次性活动，快速零风险 | 日常长期运营，要真实 IP |
+
+> 完整对比（含切换成本/风险/基岩双通道）见 `docs/architecture.md`「两种档位」。
+
 ## 隧道监控（外部视角，cron 看门狗）
 
 ```bash
@@ -69,10 +82,10 @@ scripts/relay-monitor.sh --mode temp --direct-host 家宽IP
 
 ```
 ├── docs/
-│   ├── architecture.md      # 架构/端口/延迟链路/成本
-│   ├── setup-guide.md       # 完整部署手册（含灰度迁移/回滚）
+│   ├── architecture.md      # 架构/端口/延迟链路/成本 + 两种档位完整对比表
+│   ├── setup-guide.md       # 完整部署手册（含灰度迁移/回滚 + 隧道监控接线）
 │   ├── manual-apply-windows.md  # MCSM 面板不可用时 Windows 手动改法（2 文件+重启）
-│   └── troubleshooting.md   # 排障手册
+│   └── troubleshooting.md   # 排障手册（含验证工具速查）
 ├── configs/                 # 配置模板（复制为 frps.toml / frpc.toml 修改）
 ├── scripts/                 # 安装/验证/健康检查/监控/卸载（sh + ps1）
 │   ├── relay-monitor.sh     # 🆕 外部隧道监控（formal/temp 双档，状态转换告警，适配 cron 看门狗）

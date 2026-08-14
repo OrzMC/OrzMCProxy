@@ -9,6 +9,7 @@
 3. 安全组放行：
    - `TCP 7000` ← 仅家里出口 IP（中转控制通道）
    - `TCP 25565`、`TCP 25566` ← 全部（玩家入口）
+   - `UDP 19132` ← 全部（基岩 Geyser 入口，2026-08-14 实测 UDP 中转可行）
 4. 生成强随机 token：
 
 ```bash
@@ -80,6 +81,20 @@ python3 scripts/bedrock_ping.py <家里IP> 19132
 # PONG_OK + MOTD = Geyser 存活且 Geyser→Java 连接（haproxy 头）被 Paper 接受
 ```
 
+## 3b. 隧道监控（生产上线后必接）
+
+```bash
+# 临时档：中转+直连双通道完整检测（玩家两条路都通才算健康）
+scripts/relay-monitor.sh --mode temp --direct-host <家宽IP>
+
+# 正式档：Java 只做 TCP+后端存活检测（proxy-protocol 下 MC ping 被拒属预期），RakNet 通用
+scripts/relay-monitor.sh --mode formal
+```
+
+- 输出契约：状态翻转（健康↔故障）才输出 `🔴 ALERT`/`🟢 RECOVERY`/`🆕 首次基线`，稳定静默 → 适配 cron no_agent 看门狗（空输出不投递不刷屏），退出码恒 0
+- 检查项：frps 控制口 7000 + Java 入口（按档位）+ 基岩 19132 RakNet（真实端到端 Geyser→Paper）
+- cron 接线示例（每 5 分钟）：`*/5 * * * * /path/to/relay-monitor.sh --mode formal`，stdout 非空即投递
+
 ## 4. 灰度测试
 
 1. 拉 2–3 个联通/移动玩家连中转 IP，对比直连延迟（ping/mtr 中转 IP）
@@ -89,8 +104,9 @@ python3 scripts/bedrock_ping.py <家里IP> 19132
 ## 5. 全量切换
 
 1. 群公告连接地址改为 `<中转机IP>:25565`
-2. 保留家宽直连 IP 作备用入口（双入口并行一周）
-3. 观察一周：连接数、`Connection throttled` / `Timed out` 踢人日志、带宽曲线
+2. **正式档**：直连地址从此失效（proxy-protocol 拒绝无头连接）——玩家只有中转一条路，切换即完成
+3. **临时档**：保留家宽直连 IP 作备用入口（双入口并行一周）
+4. 观察一周：连接数、`Connection throttled` / `Timed out` 踢人日志、带宽曲线
 
 ## 6. 回滚
 
@@ -111,13 +127,15 @@ sudo systemctl stop frpc          # macOS: launchctl unload ...
 4. **frps/frpc 版本必须一致**（都用 v0.70.1），避免 wire protocol 不兼容
 5. **家里断电/断网 = 全服不可达**：活动日确认供电（UPS）与网络
 6. **带宽顶满先查家里上行**：100 人峰值 20–30Mbps vs 家宽上行 50Mbps——活动前用压测验证（stress-stay.js 100 bot + 观察上行利用率）
-7. **基岩 UDP（19132）经 frp 有 NAT 超时坑**：Geyser 玩家一期先保持直连（此时 Paper 不能开 proxy-protocol，否则直连被拒；或开 proxy-protocol + Geyser 开 haproxy 双向支持），二期再评估
+7. **基岩 UDP（19132）中转已实测可行（2026-08-14）**：frpc 加 `type = "udp"` proxy + frps `allowPorts` 加 19132 + 云防火墙放行 UDP 19132。⚠️ Geyser 配置只改 **java 段** `use-haproxy-protocol: true`（正式档时），**bedrock 段必须保持 false**（frp UDP 代理不支持 PROXY protocol，两个同名配置项极易改错，patch 勿 replace_all）。UDP 中转**无真实 IP 透传**（Geyser 看到 127.0.0.1），基岩玩家 IP 级管控失效（XUID 管控不受影响）
+8. **verify-tunnel.sh 修复后的正确行为（2026-08-14）**：正式档下**经中转 MC ping 成功**（frpc 自动加 PROXY v2 头，服务器正常响应）——不是「ping 失败」；只有**直连无头**才 timed out（proxy-protocol 拦截，正常现象）。旧版脚本 Status Request 包 ID 写错（0x01→应为 0x00）曾导致误判，已修复
 
 ## 活动日检查清单
 
-- [ ] 中转机实例已创建、安全组正确
+- [ ] 中转机实例已创建、安全组正确（TCP 7000/25565/25566 + UDP 19132）
 - [ ] frps/frpc 服务 running（`systemctl status`）
-- [ ] `verify-tunnel.sh` 两个端口均通过
+- [ ] `verify-tunnel.sh` 两个端口均通过（正式档经中转 ping；基岩用 `bedrock_ping.py`）
+- [ ] `relay-monitor.sh` 已接 cron 且当前状态 OK
 - [ ] 档位确认：正式档 → Paper proxy-protocol + Geyser haproxy 已开；临时档 → `connection-throttle` 已放宽
 - [ ] 压测：家里上行未顶满
 - [ ] 群公告连接地址已更新
