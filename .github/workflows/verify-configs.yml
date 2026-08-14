@@ -23,6 +23,9 @@ jobs:
       - name: 校验 frpc.toml.example
         run: ./frpc verify -c configs/frpc.toml.example
 
+      - name: 校验 frpc.production.toml.example（生产双代理模板）
+        run: ./frpc verify -c configs/frpc.production.toml.example
+
       - name: 校验 shell 脚本语法（Linux 目标端）
         run: |
           for f in scripts/*.sh; do bash -n "$f"; done

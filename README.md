@@ -51,6 +51,20 @@ Windows：管理员 PowerShell 执行 `scripts/install-frp.ps1 -Role frpc`（多
 
 详细步骤见 `docs/setup-guide.md`。
 
+## 隧道监控（外部视角，cron 看门狗）
+
+```bash
+# 正式档（proxy-protocol 开）：Java 只能查 TCP+后端存活，MC ping 被拒属预期
+scripts/relay-monitor.sh --mode formal
+
+# 临时档（无 proxy-protocol）：中转+直连双通道完整 MC ping / RakNet 探测
+scripts/relay-monitor.sh --mode temp --direct-host 家宽IP
+```
+
+- **输出契约**：状态翻转（健康↔故障）才输出告警/恢复消息；状态稳定静默 → 适合 cron no_agent 看门狗（空输出不投递，不刷屏）
+- 首次运行输出基线；退出码恒 0，健康性通过 stdout 表达
+- 检查项：frps 控制口 7000 + Java 入口（按档位）+ 基岩 RakNet 19132（真实端到端，Geyser→Paper）
+
 ## 目录结构
 
 ```
@@ -60,7 +74,12 @@ Windows：管理员 PowerShell 执行 `scripts/install-frp.ps1 -Role frpc`（多
 │   ├── manual-apply-windows.md  # MCSM 面板不可用时 Windows 手动改法（2 文件+重启）
 │   └── troubleshooting.md   # 排障手册
 ├── configs/                 # 配置模板（复制为 frps.toml / frpc.toml 修改）
-├── scripts/                 # 安装/验证/健康检查/卸载（sh + ps1）
+├── scripts/                 # 安装/验证/健康检查/监控/卸载（sh + ps1）
+│   ├── relay-monitor.sh     # 🆕 外部隧道监控（formal/temp 双档，状态转换告警，适配 cron 看门狗）
+│   ├── verify-tunnel.sh     # 隧道验证（TCP + MC Server List Ping）
+│   ├── bedrock_ping.py      # 基岩 RakNet 探测（真实端到端）
+│   ├── health-check.sh      # 本机进程/守护状态检查
+│   └── install-frp.* / uninstall-frp.*
 ├── systemd/                 # Linux 服务单元
 ├── launchd/                 # macOS 服务 plist
 ├── windows/                 # Windows 服务方案说明

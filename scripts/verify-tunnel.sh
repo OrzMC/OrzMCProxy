@@ -75,8 +75,8 @@ try:
     # 握手包: packet_id=0 + protocol=767 + host + port + next_state=1
     handshake = varint(0) + varint(767) + varint(len(host_b)) + host_b + struct.pack(">H", port) + varint(1)
     s.sendall(varint(len(handshake)) + handshake)
-    # Status Request: packet_id=0x01（空载荷）
-    s.sendall(b"\x01\x01")
+    # Status Request: packet_id=0x00（⚠️ 不是 0x01！0x01 是 Ping Request 需 8B payload，缺了必断连——2026-08-14 实测抓到的历史 bug）
+    s.sendall(b"\x01\x00")
     data = read_packet(s)
     s.close()
     _, i = varint_from_bytes(data)          # 跳过 packet_id
