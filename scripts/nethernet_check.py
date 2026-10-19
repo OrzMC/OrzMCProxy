@@ -12,10 +12,10 @@ NetherNet 与 RakNet 的关键差别：
 
 用法:
   python3 nethernet_check.py                          # 本机 127.0.0.1:19132
-  python3 nethernet_check.py dev.jokerhub.cn          # 远程 19132
-  python3 nethernet_check.py dev.jokerhub.cn 19133
-  python3 nethernet_check.py dev.jokerhub.cn --signal-port 8080 --scheme http
-  python3 nethernet_check.py dev.jokerhub.cn --json   # 机器可读
+  python3 nethernet_check.py mc.example.com          # 远程 19132
+  python3 nethernet_check.py mc.example.com 19133
+  python3 nethernet_check.py mc.example.com --signal-port 8080 --scheme http
+  python3 nethernet_check.py mc.example.com --json   # 机器可读
   python3 nethernet_check.py --self-test              # 自检（Pong 解析回归）
   python3 nethernet_check.py -h | --help
 
