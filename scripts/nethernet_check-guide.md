@@ -27,17 +27,17 @@ python3 nethernet_check.py
 python3 nethernet_check.py 19133
 
 # 远程
-python3 nethernet_check.py dev.jokerhub.cn
-python3 nethernet_check.py dev.jokerhub.cn 19133
+python3 nethernet_check.py mc.example.com
+python3 nethernet_check.py mc.example.com 19133
 
 # 信令端口与基岩端口不同 / 信令走 HTTPS
-python3 nethernet_check.py dev.jokerhub.cn 19132 --signal-port 8080 --scheme https
+python3 nethernet_check.py mc.example.com 19132 --signal-port 8080 --scheme https
 
 # 机器可读（监控采集）
-python3 nethernet_check.py dev.jokerhub.cn --json
+python3 nethernet_check.py mc.example.com --json
 
 # Windows / cron 友好（纯 ASCII，无 emoji）
-python3 nethernet_check.py dev.jokerhub.cn --no-emoji
+python3 nethernet_check.py mc.example.com --no-emoji
 
 # 自检（Pong 解析回归，改脚本后先跑这个）
 python3 nethernet_check.py --self-test
@@ -62,7 +62,7 @@ python3 nethernet_check.py -h    # 完整帮助
 ## 输出解读
 
 ```
-[0] 域名解析        dev.jokerhub.cn -> <IP>
+[0] 域名解析        mc.example.com -> <IP>
 [1] RakNet(UDP)     ✅ 应答（17ms）+ MOTD        ← 旧通道基线
 [2] NetherNet 信令  ✅/🟡/❌ TCP <port> -> <state>
 ```
@@ -89,7 +89,7 @@ python3 nethernet_check.py -h    # 完整帮助
 ```bash
 # ① DoH 取真实公网 IP
 curl -H 'accept: application/dns-json' \
-  'https://1.1.1.1/dns-query?name=dev.jokerhub.cn&type=A'
+  'https://1.1.1.1/dns-query?name=mc.example.com&type=A'
 
 # ② 用外部节点验证 TCP（返回 request_id 后查结果）
 curl -H 'Accept: application/json' 'https://check-host.net/check-tcp?host=<IP>:19132&max_nodes=3'
