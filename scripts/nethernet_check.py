@@ -44,6 +44,8 @@ __version__ = "1.1.0"
 MAGIC = bytes([0x00, 0xFF, 0xFF, 0x00, 0xFE, 0xFE, 0xFE, 0xFE,
                0xFD, 0xFD, 0xFD, 0xFD, 0x12, 0x34, 0x56, 0x78])
 
+DEFAULT_PORT = 19132
+
 EXIT_OK = 0
 EXIT_UNREACHABLE = 1
 EXIT_USAGE = 2
@@ -251,7 +253,8 @@ def build_parser():
         epilog="退出码: 0=信令可用 / 1=不可达 / 2=用法错误 / 3=降级待确认",
         formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("host", nargs="?", default="127.0.0.1", help="目标域名或 IP（默认 127.0.0.1）")
-    p.add_argument("port", nargs="?", type=int, default=19132, help="基岩端口（默认 19132）")
+    p.add_argument("port", nargs="?", type=int, default=DEFAULT_PORT,
+                   help=f"基岩端口（默认 {DEFAULT_PORT}）")
     p.add_argument("--signal-port", type=int, default=None,
                    help="信令 TCP 端口（默认与基岩端口相同）")
     p.add_argument("--scheme", choices=["http", "https"], default="http",
@@ -270,6 +273,11 @@ def main(argv=None):
 
     if args.self_test:
         return self_test(out)
+
+    # 简写：只给纯数字位置参数 = 本机端口（python3 nethernet_check.py 19133）
+    if args.host.isdigit() and len(args.host) <= 5 and args.port == DEFAULT_PORT:
+        args.port = int(args.host)
+        args.host = "127.0.0.1"
 
     if not (1 <= args.port <= 65535):
         out.line(f"参数错误: 端口需在 1-65535 之间（当前 {args.port}）")
