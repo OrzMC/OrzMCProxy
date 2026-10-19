@@ -21,9 +21,9 @@ NetherNet 与 RakNet 的关键差别：
 
 退出码:
   0 = 信令可用（TCP 返回 HTTP 2xx/4xx）
-  1 = 不可达（UDP/TCP 超时、拒绝、连接错误）
-  2 = 用法/参数错误
-  3 = 降级待确认（私有协议应答 / HTTP 5xx / TCP 通但无 HTTP 应答）
+  1 = 不可达（UDP/TCP 超时、拒绝、连接错误、DNS 失败）
+  2 = 用法/参数错误（含端口、超时非法）
+  3 = 降级待确认（私有协议应答 / HTTP 3xx、5xx / TCP 通但无 HTTP 应答）
 
 注意: 本机若开着 Clash 等 TUN 代理，任何 TCP 探测都可能被本地栈接管（域名被
 fake-IP 成 198.18.x），表现为「TCP 能连但立即关闭」→ 请以外部节点结论为准。
@@ -132,11 +132,11 @@ def parse_raknet_pong(data):
 def raknet_ping(ip, port, timeout=6.0):
     """RakNet Unconnected Ping → (ok, motd, elapsed_ms, reason)"""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(timeout)
     guid = struct.pack(">Q", int.from_bytes(os.urandom(8), "big"))
     payload = (b"\x01" + struct.pack(">Q", int(time.time() * 1000)) + MAGIC + guid)
     t0 = time.time()
     try:
+        s.settimeout(timeout)          # 放进 try：非法超时值不应崩出 traceback
         s.connect((ip, port))          # 锁定对端，避免任意来源注入响应
         s.send(payload)
         data = s.recv(4096)
@@ -271,11 +271,17 @@ def main(argv=None):
     if args.self_test:
         return self_test(out)
 
-    if not (1 <= args.port <= 65535) or (args.signal_port and not 1 <= args.signal_port <= 65535):
-        out.line("参数错误: 端口需在 1-65535 之间")
+    if not (1 <= args.port <= 65535):
+        out.line(f"参数错误: 端口需在 1-65535 之间（当前 {args.port}）")
+        return EXIT_USAGE
+    if args.signal_port is not None and not (1 <= args.signal_port <= 65535):
+        out.line(f"参数错误: --signal-port 需在 1-65535 之间（当前 {args.signal_port}）")
+        return EXIT_USAGE
+    if not (0 < args.timeout <= 300):
+        out.line(f"参数错误: --timeout 需在 (0, 300] 秒之间（当前 {args.timeout}）")
         return EXIT_USAGE
 
-    signal_port = args.signal_port or args.port
+    signal_port = args.signal_port if args.signal_port is not None else args.port
     result = {"tool": "nethernet_check", "version": __version__, "host": args.host,
               "bedrock_port": args.port, "signal_port": signal_port, "scheme": args.scheme}
 
