@@ -91,6 +91,8 @@ scripts/relay-monitor.sh --mode temp --direct-host 家宽IP
 │   ├── relay-monitor.sh     # 🆕 外部隧道监控（formal/temp 双档，状态转换告警，适配 cron 看门狗）
 │   ├── verify-tunnel.sh     # 隧道验证（TCP + MC Server List Ping）
 │   ├── bedrock_ping.py      # 基岩 RakNet 探测（真实端到端）
+│   ├── bedrock_host_check.sh / .ps1  # 基岩连通性五项体检（本机/远程）
+│   ├── nethernet_check.py   # 🆕 NetherNet 信令探测（UDP RakNet 基线 + TCP 信令 HTTP，退出码 0/1）
 │   ├── health-check.sh      # 本机进程/守护状态检查
 │   └── install-frp.* / uninstall-frp.*
 ├── systemd/                 # Linux 服务单元
